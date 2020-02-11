@@ -1,0 +1,6 @@
+boto3
+envdir
+keras
+minio
+mlflow
+tensorflow
