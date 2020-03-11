@@ -443,9 +443,7 @@ class Translator(object):
                     )
                     # We don't support Unicode project notes yet
                     self.api_client.set_project_notes(
-                        self.workspace,
-                        project_name,
-                        note_template.encode("ascii", "backslashreplace"),
+                        self.workspace, project_name, note_template,
                     )
 
                 all_project_names.append(project_name)
