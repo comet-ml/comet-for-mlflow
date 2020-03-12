@@ -38,7 +38,7 @@ from comet_ml import API
 from comet_ml.comet import format_url
 from comet_ml.config import get_api_key, get_config
 from comet_ml.connection import Reporting, get_comet_api_client, url_join
-from comet_ml.exceptions import CometRestApiException, NotFound
+from comet_ml.exceptions import CometRestApiException
 from comet_ml.offline import upload_single_offline_experiment
 from mlflow.entities.run_tag import RunTag
 from mlflow.entities.view_type import ViewType
@@ -528,16 +528,14 @@ class Translator(object):
         project_name = get_comet_project_name(self.store, exp.name)
 
         # Check if the project exists already
-        try:
-            project = self.api_client.get_project(self.workspace, project_name)
-            if not project:
-                raise NotFound("POST", {})
-            project_id = project["projectId"]
-        except NotFound:
+        project = self.api_client.get_project(self.workspace, project_name)
+        if not project:
             project = self.api_client.create_project(
                 self.workspace, project_name, public=False
             )
 
+            project_id = project["projectId"]
+        else:
             project_id = project["projectId"]
 
         # Save the project id to the experiment tags
@@ -555,15 +553,12 @@ class Translator(object):
             project_id = exp.tags[tag_name]
 
             # Check if the project exists
-            try:
-                project = self.api_client.get_project_by_id(project_id)
-                if not project:
-                    raise NotFound("POST", {})
-                return project["projectName"]
-            except (NotFound):
+            project = self.api_client.get_project_by_id(project_id)
+            if not project:
                 # A previous project ID has been saved but don't exists anymore (at
                 # least in this environment), recreate it
                 return self.create_and_save_comet_project(exp, tag_name)
+            return project["projectName"]
         else:
             return self.create_and_save_comet_project(exp, tag_name)
 
