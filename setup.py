@@ -11,7 +11,7 @@ with open("README.md") as readme_file:
 with open("HISTORY.md") as history_file:
     history = history_file.read()
 
-requirements = ["mlflow", "comet_ml>=3.0.3", "tabulate", "tqdm", "typing"]
+requirements = ["mlflow", "comet_ml>=3.1.1", "tabulate", "tqdm", "typing"]
 
 
 setup(
