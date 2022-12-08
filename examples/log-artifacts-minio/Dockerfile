@@ -1,4 +1,4 @@
-FROM python:3.7.0
+FROM python:3.8.15
 
 RUN mkdir /mlflow/
 RUN mkdir -p /mlflow/fileStore

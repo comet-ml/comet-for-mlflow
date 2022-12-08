@@ -5,7 +5,7 @@ import os
 
 import mlflow
 from minio import Minio
-from minio.error import BucketAlreadyOwnedByYou
+from minio.error import S3Error
 
 os.environ.update(
     {
@@ -25,8 +25,11 @@ minioClient = Minio(
 
 try:
     minioClient.make_bucket("mlflow")
-except BucketAlreadyOwnedByYou as err:
-    print(err)
+except S3Error as err:
+    if err.code == "BucketAlreadyOwnedByYou":
+        pass
+    else:
+        raise
 
 policy = {
     "Statement": [
@@ -72,3 +75,5 @@ mlflow.log_artifact("files/myfile")
 
 # Log some directories too
 mlflow.log_artifacts("files/")
+
+print("DONE")
