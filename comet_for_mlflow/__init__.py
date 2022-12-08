@@ -23,4 +23,4 @@
 
 __author__ = """Boris Feld"""
 __email__ = "boris@comet.ml"
-__version__ = "0.1.0"
+__version__ = "0.1.3"
