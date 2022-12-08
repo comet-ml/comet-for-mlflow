@@ -42,17 +42,22 @@ def main():
         "--no-upload",
         dest="upload",
         action="store_false",
-        help="Do not upload the prepared experiments to comet.ml; will not create comet.ml projects",
+        help="Do not upload the prepared experiments to comet.ml;"
+        " will not create comet.ml projects",
     )
     parser.set_defaults(upload=True)
 
     parser.add_argument(
         "--api-key",
-        help="Set the Comet API key; required with --upload (the default); can also be configured in the usual places",
+        help="Set the Comet API key; required with --upload (the default);"
+        " can also be configured in the usual places",
     )
     parser.add_argument(
         "--mlflow-store-uri",
-        help="Set the MLFlow store uri. The MLFlow store uri to used to retrieve MLFlow runs, given directly to MLFlow, and supports all MLFlow schemes (file:// or SQLAlchemy-compatible database connection strings). If not set, reads MLFLOW_TRACKING_URI environment variable",
+        help="Set the MLFlow store uri. The MLFlow store uri to used to retrieve"
+        " MLFlow runs, given directly to MLFlow, and supports all MLFlow schemes"
+        " (file:// or SQLAlchemy-compatible database connection strings)."
+        " If not set, reads MLFLOW_TRACKING_URI environment variable",
     )
 
     parser.add_argument(
@@ -83,7 +88,8 @@ def main():
         help="Answer all yes/no questions automatically with 'no'",
     )
     parser.add_argument(
-        "--email", help="Set email address if needed for creating a comet.ml account",
+        "--email",
+        help="Set email address if needed for creating a comet.ml account",
     )
 
     args = parser.parse_args()

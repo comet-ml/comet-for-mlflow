@@ -35,14 +35,12 @@ LOGGER = logging.getLogger()
 
 
 def generate_guid():
-    """ Generate a GUID
-    """
+    """Generate a GUID"""
     return uuid.uuid4().hex
 
 
 class JsonLinesFile(object):
-    """ A context manager to write a JSON Lines file, also called newline-delimited JSON.
-    """
+    """A context manager to write a JSON Lines file, also called newline-delimited JSON."""
 
     def __init__(self, filepath, tmpdir):
         self.filepath = filepath
