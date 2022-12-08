@@ -100,6 +100,7 @@ def write_comet_experiment_metadata_file(
 
     zipfile = ZipFile(archive_path, "a")
     zipfile.writestr("experiment.json", json.dumps(data))
+    zipfile.close()
 
 
 def save_api_key(api_key):

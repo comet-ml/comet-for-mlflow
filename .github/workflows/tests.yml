@@ -43,29 +43,3 @@ jobs:
           pip install pre-commit
     - name: Run pre-commit
       run: pre-commit run --all-files
-  package:
-    runs-on: ubuntu-18.04
-    needs: [test, lint]
-    steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.7
-    - name: Package and upload to Pypi Test
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TWINE_TEST_PASSWORD }}
-      run: |
-        python -m pip install --upgrade pip
-        pip install -U wheel twine
-        python setup.py bdist_wheel sdist
-        ls dist/
-        twine upload --repository-url https://test.pypi.org/legacy/ --skip-existing dist/*
-    - name: Upload to Pypi production if it's a new tag
-      if: contains(github.ref, 'tags')
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TWINE_PROD_PASSWORD }}
-      run: |
-        twine upload dist/*

@@ -60,7 +60,10 @@ def test_conversion(tmp_path, monkeypatch):
     url = url_join(SERVER_ADDRESS, "isAlive/ver")
 
     responses.add(
-        responses.GET, url, json=backend_version_body, status=200,
+        responses.GET,
+        url,
+        json=backend_version_body,
+        status=200,
     )
 
     # Check that comet_for_mlflow have created an offline experiment
