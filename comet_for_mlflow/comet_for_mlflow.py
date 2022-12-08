@@ -41,13 +41,19 @@ from comet_ml.connection import Reporting, get_comet_api_client, url_join
 from comet_ml.exceptions import CometRestApiException
 from comet_ml.offline import upload_single_offline_experiment
 from mlflow.entities.run_tag import RunTag
-from mlflow.entities.view_type import ViewType
 from mlflow.tracking import _get_store
 from mlflow.tracking._model_registry.utils import _get_store as get_model_registry_store
 from mlflow.tracking.registry import UnsupportedModelRegistryStoreURIException
 from tabulate import tabulate
 from tqdm import tqdm
 
+from .compat import (
+    get_artifact_repository,
+    get_mlflow_model_name,
+    get_mlflow_run_id,
+    search_mlflow_store_experiments,
+    search_mlflow_store_runs,
+)
 from .file_writer import JsonLinesFile
 from .utils import (
     get_comet_project_name,
@@ -65,17 +71,9 @@ except NameError:
     pass
 
 
-try:
-    # MLFLOW version 1.4.0
-    from mlflow.store.artifact.artifact_repository_registry import (
-        get_artifact_repository,
-    )
-except ImportError:
-    # MLFLOW version < 1.4.0
-    from mlflow.store.artifact_repository_registry import get_artifact_repository
-
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 LOGGER = logging.getLogger()
+
 
 # Install a global exception hook
 def except_hook(exc_type, exc_value, exc_traceback):
@@ -137,8 +135,7 @@ class Translator(object):
         except UnsupportedModelRegistryStoreURIException:
             self.model_registry_store = None
 
-        # Most of list_experiments returns a list anyway
-        self.mlflow_experiments = list(self.store.list_experiments())
+        self.mlflow_experiments = search_mlflow_store_experiments(self.store)
         self.len_experiments = len(self.mlflow_experiments)  # We start counting at 0
 
         self.summary = {
@@ -239,22 +236,28 @@ class Translator(object):
 
         LOGGER.info("")
         LOGGER.info(
-            "If you need support, you can contact us at http://chat.comet.ml/ or https://comet.ml/docs/quick-start/#getting-support"
+            """If you need support, you can contact us at http://chat.comet.ml/"""
+            """ or https://comet.ml/docs/quick-start/#getting-support"""
         )
         LOGGER.info("")
 
     def prepare_mlflow_exp(
-        self, exp,
+        self,
+        exp,
     ):
-        runs_info = self.store.list_run_infos(exp.experiment_id, ViewType.ALL)
+        runs_info = search_mlflow_store_runs(self.store, exp.experiment_id)
         len_runs = len(runs_info)
 
         for run_number, run_info in enumerate(runs_info):
             try:
-                run_id = run_info.run_id
+                run_id = get_mlflow_run_id(run_info)
+
                 run = self.store.get_run(run_id)
                 LOGGER.info(
-                    "## Preparing run %d/%d [%s]", run_number + 1, len_runs, run_id,
+                    "## Preparing run %d/%d [%s]",
+                    run_number + 1,
+                    len_runs,
+                    run_id,
                 )
                 LOGGER.debug(
                     "## Preparing run %d/%d: %r", run_number + 1, len_runs, run
@@ -410,15 +413,25 @@ class Translator(object):
                         break
 
                 if matching_model:
+                    model_name = get_mlflow_model_name(matching_model)
+
+                    prefix = "models/"
+                    if artifact_path.startswith(prefix):
+                        comet_artifact_path = artifact_path[len(prefix) :]
+                    else:
+                        comet_artifact_path = artifact_path
+
                     json_writer.log_artifact_as_model(
                         local_artifact_path,
-                        artifact_path,
+                        comet_artifact_path,
                         run_start_time,
-                        matching_model.registered_model.name,
+                        model_name,
                     )
                 else:
                     json_writer.log_artifact_as_asset(
-                        local_artifact_path, artifact_path, run_start_time,
+                        local_artifact_path,
+                        artifact_path,
+                        run_start_time,
                     )
 
         return self.compress_archive(run.info.run_id)
@@ -438,12 +451,15 @@ class Translator(object):
                 project_note = experiment.tags.get("mlflow.note.content", None)
                 if project_note:
                     note_template = (
-                        u"/!\\ This project notes has been copied from MLFlow. It might be overwritten if you run comet_for_mlflow again/!\\ \n%s"
+                        "/!\\ This project notes has been copied from MLFlow."
+                        " It might be overwritten if you run comet_for_mlflow again/!\\ \n%s"
                         % project_note
                     )
                     # We don't support Unicode project notes yet
                     self.api_client.set_project_notes(
-                        self.workspace, project_name, note_template,
+                        self.workspace,
+                        project_name,
+                        note_template,
                     )
 
                 all_project_names.append(project_name)
@@ -487,7 +503,8 @@ class Translator(object):
             LOGGER.info("\t- %s", url)
 
         LOGGER.info(
-            "Get deeper instrumentation by adding Comet SDK to your project: https://comet.ml/docs/python-sdk/mlflow/"
+            "Get deeper instrumentation by adding Comet SDK to your project:"
+            " https://comet.ml/docs/python-sdk/mlflow/"
         )
         LOGGER.info("")
 
@@ -598,11 +615,13 @@ class Translator(object):
             Reporting.report("mlflow_new_user", api_key=new_account["apiKey"])
 
             LOGGER.info(
-                "A Comet.ml account has been created for you and an email was sent to you to setup your password later."
+                "A Comet.ml account has been created for you and an email was sent to"
+                " you to setup your password later."
             )
             save_api_key(new_account["apiKey"])
             LOGGER.info(
-                "Your Comet API Key has been saved to ~/.comet.ini, it is also available on your Comet.ml dashboard."
+                "Your Comet API Key has been saved to ~/.comet.ini, it is also"
+                " available on your Comet.ml dashboard."
             )
             return (
                 new_account["apiKey"],
@@ -610,7 +629,9 @@ class Translator(object):
             )
         else:
             LOGGER.info(
-                "An account already exists for this account, please input your API Key below (you can find it in your Settings page, https://comet.ml/docs/quick-start/#getting-your-comet-api-key):"
+                "An account already exists for this account, please input your API Key"
+                " below (you can find it in your Settings page,"
+                " https://comet.ml/docs/quick-start/#getting-your-comet-api-key):"
             )
             api_key = input("API Key: ")
 
