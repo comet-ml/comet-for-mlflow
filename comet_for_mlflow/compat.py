@@ -67,10 +67,3 @@ def get_mlflow_run_id(mlflow_run):
         return mlflow_run.info.run_id
     else:
         return mlflow_run.run_id
-
-
-def get_mlflow_model_name(mlflow_model):
-    if hasattr(mlflow_model, "name"):
-        return mlflow_model.name
-    else:
-        return mlflow_model.registered_model.name
