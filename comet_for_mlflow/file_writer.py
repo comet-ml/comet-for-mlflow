@@ -294,7 +294,6 @@ class JsonLinesFile(object):
     def log_artifact_as_model(
         self, artifact_path, artifact_name, timestamp, model_name
     ):
-
         _, extension = os.path.splitext(
             artifact_path
         )  # TODO: Support extension less file names?
@@ -328,7 +327,6 @@ class JsonLinesFile(object):
         self.write_line_data(data)
 
     def log_artifact_as_asset(self, artifact_path, artifact_name, timestamp):
-
         _, extension = os.path.splitext(
             artifact_path
         )  # TODO: Support extension less file names?
