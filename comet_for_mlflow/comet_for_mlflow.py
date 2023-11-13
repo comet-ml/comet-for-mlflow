@@ -31,7 +31,6 @@ import sys
 import tempfile
 import traceback
 from os.path import abspath
-from typing import Optional
 from zipfile import ZipFile
 
 from comet_ml import API
@@ -103,7 +102,6 @@ class Translator(object):
         answer,
         email,
     ):
-        # type: (bool, str, str, bool, str, Optional[bool], str) -> None
         self.answer = answer
         self.email = email
         self.config = get_config()
@@ -163,7 +161,6 @@ class Translator(object):
 
         # First prepare all the data except the metadata as we need a project name
         for experiment_number, experiment in enumerate(self.mlflow_experiments):
-
             experiment_name = experiment.experiment_id
             if experiment.name:
                 experiment_name = experiment.name
