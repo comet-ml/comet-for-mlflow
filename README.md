@@ -6,7 +6,7 @@
 
 The Comet-For-MLFlow extension is a CLI that maps MLFlow experiment runs to Comet experiments. This extension allows you to see your existing experiments in the Comet.ml UI which provides authenticated access to experiment results, dramatically improves the performance for high volume experiment runs, and provides richer charting and visualization options.
 
-This extension will synchronize previous MLFlow experiment runs with all runs tracked with [Comet's Python SDK with MLFlow support](https://comet.ml/docs/python-sdk/mlflow/), for deeper experiment instrumentation and improved logging, visibility, project organization and access management.
+This extension will synchronize previous MLFlow experiment runs with all runs tracked with [Comet's Python SDK with MLFlow support](https://www.comet.com/docs/v2/integrations/ml-frameworks/mlflow/), for deeper experiment instrumentation and improved logging, visibility, project organization and access management.
 
 The Comet-For-MLFlow Extension is available as free open-source software, released under GNU General Public License v3. The extension can be used with existing Comet.ml accounts or with a new, free Individual account.
 
@@ -137,7 +137,7 @@ env MLFLOW_S3_ENDPOINT_URL=http://localhost:9001 \
 
 ## How can I configure my API Key or Rest API Key?
 
-You can either pass your Comet.ml API Key or Rest API Key as command-line flags or through the [usual configuration options](https://www.comet.ml/docs/python-sdk/advanced/#python-configuration).
+You can either pass your Comet.ml API Key or Rest API Key as command-line flags or through the [usual configuration options](https://www.comet.com/docs/v2/api-and-sdk/python-sdk/advanced/configuration/).
 
 ## How are MLFlow experiments mapped to Comet.ml projects?
 
@@ -162,7 +162,7 @@ Below is a complete list of MLFlow experiment and run fields mapped to Comet.ml 
 
 ## Do I have to run this for future experiments?
 
-No, the common pattern is to import [Comet's Python SDK with MLFlow support](https://comet.ml/docs/python-sdk/mlflow/) in your MLFlow projects, which will keep all future experiment runs synchronized.
+No, the common pattern is to import [Comet's Python SDK with MLFlow support](https://www.comet.com/docs/v2/integrations/ml-frameworks/mlflow/) in your MLFlow projects, which will keep all future experiment runs synchronized.
 
 
 # Credits

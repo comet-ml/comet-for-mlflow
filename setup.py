@@ -42,6 +42,6 @@ setup(
     packages=find_packages(include=["comet_for_mlflow", "comet_for_mlflow.*"]),
     test_suite="tests",
     url="https://github.com/comet-ml/comet-for-mlflow",
-    version="0.1.3",
+    version="0.1.5",
     zip_safe=False,
 )
