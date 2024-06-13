@@ -97,7 +97,7 @@ class Translator(object):
         upload_experiment,
         api_key,
         output_dir,
-        force_reupload,
+        force_upload,
         mlflow_store_uri,
         answer,
         email,
@@ -146,7 +146,7 @@ class Translator(object):
 
         self.upload_experiment = upload_experiment
         self.output_dir = output_dir
-        self.force_reupload = force_reupload
+        self.force_upload = force_upload
         self.mlflow_store_uri = mlflow_store_uri
 
     def prepare(self):
@@ -486,7 +486,7 @@ class Translator(object):
                     upload_single_offline_experiment(
                         archive_path,
                         self.api_key,
-                        force_reupload=self.force_reupload,
+                        force_upload=self.force_upload,
                         display_level="debug",
                     )
 

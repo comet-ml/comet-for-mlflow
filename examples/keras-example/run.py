@@ -3,17 +3,15 @@
 """Trains and evaluate a simple MLP
 on the Reuters newswire topic classification task.
 """
-from __future__ import print_function
-
-import keras
-import mlflow.keras
+import mlflow
 import numpy as np
-from keras.datasets import reuters
-from keras.layers import Activation, Dense, Dropout
-from keras.models import Sequential
-from keras.preprocessing.text import Tokenizer
+from tensorflow import keras
+from tensorflow.keras.datasets import reuters
+from tensorflow.keras.layers import Activation, Dense, Dropout
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.preprocessing.text import Tokenizer
 
-mlflow.keras.autolog()
+mlflow.tensorflow.autolog()
 
 max_words = 1000
 batch_size = 32
@@ -38,8 +36,7 @@ print("x_train shape:", x_train.shape)
 print("x_test shape:", x_test.shape)
 
 print(
-    "Convert class vector to binary class matrix "
-    "(for use with categorical_crossentropy)"
+    "Convert class vector to binary class matrix (for use with categorical_crossentropy)"
 )
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
@@ -67,5 +64,3 @@ history = model.fit(
 score = model.evaluate(x_test, y_test, batch_size=batch_size, verbose=1)
 print("Test score:", score[0])
 print("Test accuracy:", score[1])
-
-mlflow.keras.log_model(model, "models")
