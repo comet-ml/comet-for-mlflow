@@ -65,10 +65,10 @@ def main():
         help="set the directory to store prepared runs; only relevant with --no-upload",
     )
     parser.add_argument(
-        "--force-reupload",
+        "--force-upload",
         action="store_true",
         default=False,
-        help="Force reupload of prepared experiments that were previously uploaded",
+        help="Force the upload of prepared experiments even if they were previously uploaded",
     )
     command_group = parser.add_mutually_exclusive_group()
     command_group.add_argument(
@@ -98,7 +98,7 @@ def main():
         args.upload,
         args.api_key,
         args.output_dir,
-        args.force_reupload,
+        args.force_upload,
         args.mlflow_store_uri,
         args.answer,
         args.email,
