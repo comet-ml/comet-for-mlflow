@@ -4,7 +4,7 @@ comet_ml
 coverage==4.5.4
 flake8==3.7.8
 mlflow
-pip==19.2.3
+pip==25.2
 pytest==4.6.5
 pytest-runner==5.1
 Sphinx==1.8.5
