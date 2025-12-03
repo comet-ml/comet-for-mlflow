@@ -729,7 +729,8 @@ class Translator(object):
         LOGGER.error("")
         if mlflow_store_uri and "databricks" in mlflow_store_uri.lower():
             LOGGER.error(
-                "For Databricks MLflow stores, you need to set the DATABRICKS_TOKEN environment variable:"
+                "For Databricks MLflow stores, you need to set the "
+                "DATABRICKS_TOKEN environment variable:"
             )
             LOGGER.error(
                 "  export DATABRICKS_TOKEN=your_databricks_personal_access_token"
