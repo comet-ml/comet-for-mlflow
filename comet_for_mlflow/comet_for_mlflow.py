@@ -130,28 +130,13 @@ class Translator(object):
         try:
             self.store = _get_store(mlflow_store_uri)
         except RestException as e:
-            # Check HTTP status code for authentication errors
-            status_code = (
-                e.get_http_status_code() if hasattr(e, "get_http_status_code") else None
-            )
-            error_msg = str(e)
-            if (
-                status_code == 401
-                or "401" in error_msg
-                or "Credential" in error_msg
-                or "authentication" in error_msg.lower()
-            ):
+            if self._is_authentication_error(e):
                 self._log_authentication_error(
                     mlflow_store_uri, "connecting to MLflow store"
                 )
             raise
         except Exception as e:
-            error_msg = str(e)
-            if (
-                "401" in error_msg
-                or "Credential" in error_msg
-                or "authentication" in error_msg.lower()
-            ):
+            if self._is_authentication_error(e):
                 self._log_authentication_error(
                     mlflow_store_uri, "connecting to MLflow store"
                 )
@@ -165,28 +150,13 @@ class Translator(object):
         try:
             self.mlflow_experiments = search_mlflow_store_experiments(self.store)
         except RestException as e:
-            # Check HTTP status code for authentication errors
-            status_code = (
-                e.get_http_status_code() if hasattr(e, "get_http_status_code") else None
-            )
-            error_msg = str(e)
-            if (
-                status_code == 401
-                or "401" in error_msg
-                or "Credential" in error_msg
-                or "authentication" in error_msg.lower()
-            ):
+            if self._is_authentication_error(e):
                 self._log_authentication_error(
                     mlflow_store_uri, "accessing MLflow experiments"
                 )
             raise
         except Exception as e:
-            error_msg = str(e)
-            if (
-                "401" in error_msg
-                or "Credential" in error_msg
-                or "authentication" in error_msg.lower()
-            ):
+            if self._is_authentication_error(e):
                 self._log_authentication_error(
                     mlflow_store_uri, "accessing MLflow experiments"
                 )
@@ -721,6 +691,22 @@ class Translator(object):
         Reporting.report("mlflow_existing_user", api_key=api_key)
 
         return (api_key, None)
+
+    def _is_authentication_error(self, exception):
+        """Check if an exception is an authentication error (401)."""
+        error_msg = str(exception)
+        status_code = None
+
+        # Check HTTP status code for RestException
+        if hasattr(exception, "get_http_status_code"):
+            status_code = exception.get_http_status_code()
+
+        return (
+            status_code == 401
+            or "401" in error_msg
+            or "Credential" in error_msg
+            or "authentication" in error_msg.lower()
+        )
 
     def _log_authentication_error(self, mlflow_store_uri, context):
         """Log helpful error message for MLflow authentication errors."""
