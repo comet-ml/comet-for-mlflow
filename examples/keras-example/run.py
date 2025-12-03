@@ -11,6 +11,10 @@ from tensorflow.keras.layers import Activation, Dense, Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.preprocessing.text import Tokenizer
 
+# When using when from databricks:
+mlflow.set_tracking_uri("databricks")
+mlflow.set_experiment("/Shared/keras_example")
+
 mlflow.tensorflow.autolog()
 
 max_words = 1000

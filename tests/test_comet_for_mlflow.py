@@ -8,14 +8,14 @@ import os.path
 from random import randint, random
 
 import responses
-from comet_ml.connection import url_join
+from comet_ml.utils import url_join
 from mlflow import active_run, end_run, log_artifacts, log_metric, log_param, tracking
 
 from comet_for_mlflow import comet_for_mlflow
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-SERVER_ADDRESS = "https://www.comet.ml/clientlib/"
+SERVER_ADDRESS = "https://www.comet.com/clientlib/"
 
 
 def mlflow_example():

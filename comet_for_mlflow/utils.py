@@ -109,7 +109,7 @@ def save_api_key(api_key):
     with open(config_path, "wt") as config_file:
         config_file.write("# Config file for Comet.ml\n")
         config_file.write(
-            "# For help see https://www.comet.ml/docs/python-sdk/getting-started/\n"
+            "# For help see https://www.comet.com/docs/python-sdk/getting-started/\n"
         )
         config_file.write("")
 
