@@ -20,7 +20,7 @@ jobs:
               pip install -U pip build
               python3 -m build --sdist --wheel --outdir dist/ .
         - name: Archive Pypi artifacts
-          uses: actions/upload-artifact@v3
+          uses: actions/upload-artifact@v4
           with:
               name: pypi_dist
               path: dist
