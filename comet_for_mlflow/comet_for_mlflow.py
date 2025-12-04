@@ -33,13 +33,14 @@ import traceback
 from os.path import abspath
 from zipfile import ZipFile
 
-from comet_ml import API
-from comet_ml.comet import format_url
+from comet_ml import API, get_comet_api_client
 from comet_ml.config import get_api_key, get_config
-from comet_ml.connection import Reporting, get_comet_api_client, url_join
+from comet_ml.connection import Reporting
 from comet_ml.exceptions import CometRestApiException
 from comet_ml.offline import upload_single_offline_experiment
+from comet_ml.utils import merge_url, url_join
 from mlflow.entities.run_tag import RunTag
+from mlflow.exceptions import RestException
 from mlflow.tracking import _get_store
 from mlflow.tracking._model_registry.utils import _get_store as get_model_registry_store
 from mlflow.tracking.registry import UnsupportedModelRegistryStoreURIException
@@ -126,13 +127,40 @@ class Translator(object):
             output_dir = tempfile.mkdtemp()
 
         # MLFlow conversion
-        self.store = _get_store(mlflow_store_uri)
+        try:
+            self.store = _get_store(mlflow_store_uri)
+        except RestException as e:
+            if self._is_authentication_error(e):
+                self._log_authentication_error(
+                    mlflow_store_uri, "connecting to MLflow store"
+                )
+            raise
+        except Exception as e:
+            if self._is_authentication_error(e):
+                self._log_authentication_error(
+                    mlflow_store_uri, "connecting to MLflow store"
+                )
+            raise
+
         try:
             self.model_registry_store = get_model_registry_store(mlflow_store_uri)
         except UnsupportedModelRegistryStoreURIException:
             self.model_registry_store = None
 
-        self.mlflow_experiments = search_mlflow_store_experiments(self.store)
+        try:
+            self.mlflow_experiments = search_mlflow_store_experiments(self.store)
+        except RestException as e:
+            if self._is_authentication_error(e):
+                self._log_authentication_error(
+                    mlflow_store_uri, "accessing MLflow experiments"
+                )
+            raise
+        except Exception as e:
+            if self._is_authentication_error(e):
+                self._log_authentication_error(
+                    mlflow_store_uri, "accessing MLflow experiments"
+                )
+            raise
         self.len_experiments = len(self.mlflow_experiments)  # We start counting at 0
 
         self.summary = {
@@ -206,7 +234,7 @@ class Translator(object):
         LOGGER.info(
             tabulate(
                 table,
-                headers=["MLFlow name:", "Comet.ml name:", "Prepared count:"],
+                headers=["MLFlow name:", "Comet ML name:", "Prepared count:"],
                 tablefmt="presto",
             )
         )
@@ -217,7 +245,7 @@ class Translator(object):
         # Upload or not?
         print("")
         if self.answer is None:
-            upload = input("Upload prepared data to Comet.ml? [y/N] ") in ("Y", "y")
+            upload = input("Upload prepared data to Comet ML? [y/N] ") in ("Y", "y")
         else:
             upload = self.answer
         print("")
@@ -232,8 +260,8 @@ class Translator(object):
 
         LOGGER.info("")
         LOGGER.info(
-            """If you need support, you can contact us at http://chat.comet.ml/"""
-            """ or https://comet.ml/docs/quick-start/#getting-support"""
+            """If you need support, you can contact us at http://chat.comet.com/"""
+            """ or https://comet.com/docs/quick-start/#getting-support"""
         )
         LOGGER.info("")
 
@@ -319,11 +347,11 @@ class Translator(object):
                 base_url = url_join(
                     self.api_client.server_url, "/api/experiment/redirect"
                 )
-                tags["mlflow.parentRunUrl"] = format_url(
-                    base_url, experimentKey=tags["mlflow.parentRunId"]
+                tags["mlflow.parentRunUrl"] = merge_url(
+                    base_url, {"experimentKey": tags["mlflow.parentRunId"]}
                 )
 
-            # Save the original MLFlow experiment name too as Comet.ml project might
+            # Save the original MLFlow experiment name too as Comet.com project might
             # get renamed
             tags["mlflow.experimentName"] = original_experiment_name
 
@@ -449,7 +477,7 @@ class Translator(object):
         return models
 
     def upload(self, prepared_data):
-        LOGGER.info("# Start uploading data to Comet.ml")
+        LOGGER.info("# Start uploading data to Comet ML")
 
         all_project_names = []
 
@@ -494,7 +522,7 @@ class Translator(object):
 
         LOGGER.info("")
         LOGGER.info(
-            "Explore your experiment data on Comet.ml with the following links:",
+            "Explore your experiment data on Comet ML with the following links:",
         )
         if len(all_project_names) < 6:
             for project_name in all_project_names:
@@ -516,7 +544,7 @@ class Translator(object):
 
         LOGGER.info(
             "Get deeper instrumentation by adding Comet SDK to your project:"
-            " https://comet.ml/docs/python-sdk/mlflow/"
+            " https://comet.com/docs/python-sdk/mlflow/"
         )
         LOGGER.info("")
 
@@ -593,7 +621,7 @@ class Translator(object):
 
     def create_or_login(self):
         auth_api_client = get_comet_api_client(None)
-        LOGGER.info("Please create a free Comet account with your email.")
+        LOGGER.info("Please create a free Comet.com account with your email.")
         if self.email is None:
             email = input("Email: ")
             print("")
@@ -627,13 +655,13 @@ class Translator(object):
             Reporting.report("mlflow_new_user", api_key=new_account["apiKey"])
 
             LOGGER.info(
-                "A Comet.ml account has been created for you and an email was sent to"
+                "A Comet.com account has been created for you and an email was sent to"
                 " you to setup your password later."
             )
             save_api_key(new_account["apiKey"])
             LOGGER.info(
-                "Your Comet API Key has been saved to ~/.comet.ini, it is also"
-                " available on your Comet.ml dashboard."
+                "Your Comet API Key has been saved to ~/.comet.config, it is also"
+                " available on your Comet.com dashboard."
             )
             return (
                 new_account["apiKey"],
@@ -641,9 +669,9 @@ class Translator(object):
             )
         else:
             LOGGER.info(
-                "An account already exists for this account, please input your API Key"
+                "An account already exists for this email, please input your API Key"
                 " below (you can find it in your Settings page,"
-                " https://comet.ml/docs/quick-start/#getting-your-comet-api-key):"
+                " https://comet.com/docs/quick-start/#getting-your-comet-api-key):"
             )
             api_key = input("API Key: ")
 
@@ -663,3 +691,46 @@ class Translator(object):
         Reporting.report("mlflow_existing_user", api_key=api_key)
 
         return (api_key, None)
+
+    def _is_authentication_error(self, exception):
+        """Check if an exception is an authentication error (401)."""
+        error_msg = str(exception)
+        status_code = None
+
+        # Check HTTP status code for RestException
+        if hasattr(exception, "get_http_status_code"):
+            status_code = exception.get_http_status_code()
+
+        return (
+            status_code == 401
+            or "401" in error_msg
+            or "Credential" in error_msg
+            or "authentication" in error_msg.lower()
+        )
+
+    def _log_authentication_error(self, mlflow_store_uri, context):
+        """Log helpful error message for MLflow authentication errors."""
+        LOGGER.error("")
+        LOGGER.error("MLflow authentication error detected when %s.", context)
+        LOGGER.error("")
+        if mlflow_store_uri and "databricks" in mlflow_store_uri.lower():
+            LOGGER.error(
+                "For Databricks MLflow stores, you need to set the "
+                "DATABRICKS_TOKEN environment variable:"
+            )
+            LOGGER.error(
+                "  export DATABRICKS_TOKEN=your_databricks_personal_access_token"
+            )
+            LOGGER.error("")
+            LOGGER.error("You can generate a token by:")
+            LOGGER.error("  1. Click on your user profile icon in the top-right corner")
+            LOGGER.error("  2. Select 'User Settings'")
+            LOGGER.error("  3. Go to the 'Access Tokens' tab")
+            LOGGER.error("  4. Click 'Generate New Token'")
+        else:
+            LOGGER.error("For authenticated MLflow stores, you may need to set:")
+            LOGGER.error("  - DATABRICKS_TOKEN (for Databricks token-based auth)")
+            LOGGER.error(
+                "  - MLFLOW_TRACKING_USERNAME and MLFLOW_TRACKING_PASSWORD (for basic auth)"
+            )
+        LOGGER.error("")

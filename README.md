@@ -88,13 +88,13 @@ Upload prepared data to Comet.ml? [y/N] y
 # Start uploading data to Comet.ml
 100%|███████████████████████████████████████████████████████████████████████| 6/6 [01:00<00:00, 15s/it]
 Explore your experiment data on Comet.ml with the following links:
-	- https://www.comet.ml/kstewart/mlflow-default-2bacc9?loginToken=NjKgD6f9ZuZWeudP76sDPHx9j
-	- https://www.comet.ml/kstewart/mlflow-keras-experiment-2bacc9?loginToken=NjKgD6f9ZuZWeudP76sDPHx9j
-	- https://www.comet.ml/kstewart/mlflow-tensorflow-keras-experiment-2bacc9?loginToken=NjKgD6f9ZuZWeudP76sDPHx9j
-Get deeper instrumentation by adding Comet SDK to your project: https://comet.ml/docs/python-sdk/mlflow/
+	- https://www.comet.com/kstewart/mlflow-default-2bacc9?loginToken=NjKgD6f9ZuZWeudP76sDPHx9j
+	- https://www.comet.com/kstewart/mlflow-keras-experiment-2bacc9?loginToken=NjKgD6f9ZuZWeudP76sDPHx9j
+	- https://www.comet.com/kstewart/mlflow-tensorflow-keras-experiment-2bacc9?loginToken=NjKgD6f9ZuZWeudP76sDPHx9j
+Get deeper instrumentation by adding Comet SDK to your project: https://comet.com/docs/python-sdk/mlflow/
 
 
-If you need support, you can contact us at http://chat.comet.ml/ or https://comet.ml/docs/quick-start/#getting-support
+If you need support, you can contact us at http://chat.comet.com/ or https://comet.com/docs/quick-start/#getting-support
 ```
 
 
@@ -120,6 +120,30 @@ Or with a MLFlow server:
 
 ```bash
 comet_for_mlflow --mlflow-store-uri http://localhost:5000
+```
+
+### Authenticated MLflow stores (Databricks, etc.)
+
+For authenticated MLflow stores like Databricks, you need to set authentication environment variables:
+
+**For Databricks:**
+```bash
+export DATABRICKS_TOKEN=your_databricks_personal_access_token
+comet_for_mlflow --mlflow-store-uri https://your-workspace.cloud.databricks.com
+```
+
+You can generate a Databricks personal access token by:
+1. Click on your user profile icon in the top-right corner of your Databricks workspace
+2. Select **User Settings**
+3. Go to the **Access Tokens** tab
+4. Click **Generate New Token**
+
+**For other authenticated MLflow servers:**
+```bash
+# Username/password authentication
+export MLFLOW_TRACKING_USERNAME=your_username
+export MLFLOW_TRACKING_PASSWORD=your_password
+comet_for_mlflow --mlflow-store-uri https://your-mlflow-server.com
 ```
 
 ## Importing MLFlow artifacts stored remotely
