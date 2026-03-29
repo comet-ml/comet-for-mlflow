@@ -58,6 +58,7 @@ from .utils import (
     get_comet_project_name,
     get_store_id,
     save_api_key,
+    validate_step_consistency,
     walk_run_artifacts,
     write_comet_experiment_metadata_file,
 )
@@ -385,10 +386,11 @@ class Translator(object):
                 use_steps = True
 
                 if len(set(steps)) != len(metric_history):
-                    LOGGER.warning(
-                        "Non-unique steps detected, importing metrics with wall time instead"
-                    )
-                    use_steps = False
+                    if not validate_step_consistency(metric_history):
+                        LOGGER.warning(
+                            "Non-unique steps detected, importing metrics with wall time instead"
+                        )
+                        use_steps = False
 
                 for mh in metric_history:
                     if use_steps:

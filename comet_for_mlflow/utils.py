@@ -120,3 +120,26 @@ def save_api_key(api_key):
 
     with open(config_path, "a") as config_file:
         config.write(config_file)
+
+
+def validate_step_consistency(metrics_history):
+    """
+    Checks if all Metric objects with the same 'step' have the same 'value'.
+    Returns `True` if consistent, `False` if not.
+
+    This can happen pretty commonly with the huggingface Trainer (depending on logging_strategy and eval_strategy).
+    However, the value still remains the same.
+
+    Args:
+        metrics_history `List[mlflow.entities.metric.Metric]`: A list of Metric objects.
+    """
+    step_map = {}
+
+    for metric in metrics_history:
+        if metric.step in step_map:
+            if step_map[metric.step] != metric.value:
+                return False
+        else:
+            step_map[metric.step] = metric.value
+            
+    return True
