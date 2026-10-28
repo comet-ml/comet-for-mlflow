@@ -35,12 +35,12 @@ jobs:
         id-token: write
       steps:
         - name: Download Pypi artifacts
-          uses: actions/download-artifact@v8
+          uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
           with:
               name: pypi_dist
               path: dist
         - name: Publish package
-          uses: pypa/gh-action-pypi-publish@v1.14.3
+          uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
           with:
             # A release fires both push and release events on the tag, so the second upload is a no-op.
             skip-existing: true
