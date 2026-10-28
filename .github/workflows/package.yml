@@ -10,9 +10,9 @@ jobs:
     build-package:
       runs-on: ubuntu-latest
       steps:
-        - uses: actions/checkout@v3
+        - uses: actions/checkout@v7
         - name: Set up Python 3.11
-          uses: actions/setup-python@v3
+          uses: actions/setup-python@v7
           with:
               python-version: "3.11"
         - name: Build pip package
@@ -20,7 +20,7 @@ jobs:
               pip install -U pip build
               python3 -m build --sdist --wheel --outdir dist/ .
         - name: Archive Pypi artifacts
-          uses: actions/upload-artifact@v4
+          uses: actions/upload-artifact@v7
           with:
               name: pypi_dist
               path: dist
@@ -35,12 +35,12 @@ jobs:
         id-token: write
       steps:
         - name: Download Pypi artifacts
-          uses: actions/download-artifact@v4
+          uses: actions/download-artifact@v8
           with:
               name: pypi_dist
               path: dist
         - name: Publish package
-          uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+          uses: pypa/gh-action-pypi-publish@v1.14.3
           with:
             # A release fires both push and release events on the tag, so the second upload is a no-op.
             skip-existing: true
