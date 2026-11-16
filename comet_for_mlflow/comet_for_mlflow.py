@@ -33,10 +33,9 @@ import traceback
 from os.path import abspath
 from zipfile import ZipFile
 
-from comet_ml import API, get_comet_api_client
+from comet_ml import API
 from comet_ml.config import get_api_key, get_config
 from comet_ml.connection import Reporting
-from comet_ml.exceptions import CometRestApiException
 from comet_ml.offline import upload_single_offline_experiment
 from comet_ml.utils import merge_url, url_join
 from mlflow.entities.run_tag import RunTag
@@ -57,7 +56,6 @@ from .file_writer import JsonLinesFile
 from .utils import (
     get_comet_project_name,
     get_store_id,
-    save_api_key,
     walk_run_artifacts,
     write_comet_experiment_metadata_file,
 )
@@ -101,17 +99,15 @@ class Translator(object):
         force_upload,
         mlflow_store_uri,
         answer,
-        email,
     ):
         self.answer = answer
-        self.email = email
         self.config = get_config()
 
         # Display the start banner
         LOGGER.info(BANNER)
 
         # get_api_key
-        self.api_key, self.token = self.get_api_key_or_login(api_key)
+        self.api_key = self.get_api_key_or_login(api_key)
         # May not need this always?
         self.api_client = API(self.api_key, cache=False)
 
@@ -530,7 +526,6 @@ class Translator(object):
                     self.api_client._get_url_server(),
                     self.workspace + "/",
                     project_name,
-                    loginToken=self.token,
                 )
                 LOGGER.info("\t- %s", project_url)
         else:
@@ -538,7 +533,6 @@ class Translator(object):
                 self.api_client._get_url_server(),
                 self.workspace,
                 query="mlflow",
-                loginToken=self.token,
             )
             LOGGER.info("\t- %s", url)
 
@@ -619,78 +613,20 @@ class Translator(object):
         else:
             return self.create_and_save_comet_project(exp, tag_name)
 
-    def create_or_login(self):
-        auth_api_client = get_comet_api_client(None)
-        LOGGER.info("Please create a free Comet.com account with your email.")
-        if self.email is None:
-            email = input("Email: ")
-            print("")
-        else:
-            email = self.email
-
-        # Check if the email exists in the system
-        try:
-            status = auth_api_client.check_email(email, "comet-for-mlflow")
-        except CometRestApiException as e:
-            status = e.response.status_code
-
-        # We hit rate-limitting
-        if status == 429:
-            # We hit rate-limitting
-            LOGGER.error(
-                "Too many user login requests, please try again in one minute."
-            )
-            sys.exit(1)
-
-        new_account = status != 200
-
-        if new_account:
-            LOGGER.info("Please enter a username for your new account.")
-            username = input("Username: ")
-            print("")
-            new_account = auth_api_client.create_user(
-                email, username, "comet-for-mlflow"
-            )
-
-            Reporting.report("mlflow_new_user", api_key=new_account["apiKey"])
-
-            LOGGER.info(
-                "A Comet.com account has been created for you and an email was sent to"
-                " you to setup your password later."
-            )
-            save_api_key(new_account["apiKey"])
-            LOGGER.info(
-                "Your Comet API Key has been saved to ~/.comet.config, it is also"
-                " available on your Comet.com dashboard."
-            )
-            return (
-                new_account["apiKey"],
-                new_account["token"],
-            )
-        else:
-            LOGGER.info(
-                "An account already exists for this email, please input your API Key"
-                " below (you can find it in your Settings page,"
-                " https://comet.com/docs/quick-start/#getting-your-comet-api-key):"
-            )
-            api_key = input("API Key: ")
-
-            Reporting.report("mlflow_existing_user", api_key=api_key)
-            return (
-                api_key,
-                None,
-            )
-
     def get_api_key_or_login(self, api_key):
-        # ok
         api_key = get_api_key(api_key, self.config)
 
         if api_key is None:
-            return self.create_or_login()
+            LOGGER.info(
+                "No Comet API Key found. Sign up or log in at https://www.comet.com"
+                " and input your API Key below (you can find it in your Settings"
+                " page, https://comet.com/docs/quick-start/#getting-your-comet-api-key):"
+            )
+            api_key = input("API Key: ")
 
         Reporting.report("mlflow_existing_user", api_key=api_key)
 
-        return (api_key, None)
+        return api_key
 
     def _is_authentication_error(self, exception):
         """Check if an exception is an authentication error (401)."""

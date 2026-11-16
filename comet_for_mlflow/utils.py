@@ -20,10 +20,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import configparser
 import hashlib
 import json
-import os.path
 import re
 from zipfile import ZipFile
 
@@ -101,22 +99,3 @@ def write_comet_experiment_metadata_file(
     zipfile = ZipFile(archive_path, "a")
     zipfile.writestr("experiment.json", json.dumps(data))
     zipfile.close()
-
-
-def save_api_key(api_key):
-    config_path = os.path.expanduser(os.path.join("~", ".comet.config"))
-
-    with open(config_path, "wt") as config_file:
-        config_file.write("# Config file for Comet.ml\n")
-        config_file.write(
-            "# For help see https://www.comet.com/docs/python-sdk/getting-started/\n"
-        )
-        config_file.write("")
-
-    config = configparser.ConfigParser()
-    if not config.has_section("comet"):
-        config.add_section("comet")
-    config.set("comet", "api_key", api_key)
-
-    with open(config_path, "a") as config_file:
-        config.write(config_file)

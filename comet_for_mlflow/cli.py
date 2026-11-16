@@ -89,7 +89,7 @@ def main():
     )
     parser.add_argument(
         "--email",
-        help="Set email address if needed for creating a comet.ml account",
+        help="Deprecated and ignored: sign up at https://www.comet.com instead",
     )
 
     args = parser.parse_args()
@@ -101,7 +101,6 @@ def main():
         args.force_upload,
         args.mlflow_store_uri,
         args.answer,
-        args.email,
     )
     converter.prepare()
     return 0

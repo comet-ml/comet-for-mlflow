@@ -47,14 +47,9 @@ comet upload /path/to/archive.zip
 \__, \__/  |  | |___  |     |    \__/ |  \     |  | |___ |    |___ \__/ |/\|
 
 
-Please create a free Comet account with your email.
-Email: kristen.stewart@example.com
+No Comet API Key found. Sign up or log in at https://www.comet.com and input your API Key below (you can find it in your Settings page, https://comet.com/docs/quick-start/#getting-your-comet-api-key):
+API Key: ...
 
-Please enter a username for your new account.
-Username: kstewart
-
-A Comet.ml account has been created for you and an email was sent to you to setup your password later.
-Your Comet API Key has been saved to ~/.comet.ini, it is also available on your Comet.ml dashboard.
 Starting Comet Extension for MLFlow
 
 Preparing data locally from: '/home/ks/project/mlruns'

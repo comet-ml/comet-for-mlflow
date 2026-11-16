@@ -70,7 +70,7 @@ def test_conversion(tmp_path, monkeypatch):
     api_key = "XXX"
     monkeypatch.setenv("COMET_WORKSPACE", "WORKSPACE")
     conv = comet_for_mlflow.Translator(
-        False, api_key, path, None, None, "no", "test@example.com"
+        False, api_key, path, None, None, "no"
     )
     conv.prepare()
 
