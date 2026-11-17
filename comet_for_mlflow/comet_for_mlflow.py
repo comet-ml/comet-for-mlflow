@@ -364,9 +364,11 @@ class Translator(object):
                 tags = {}
 
             LOGGER.debug("### Preparing env details")
-            json_writer.write_filename_msg(tags["mlflow.source.name"], run_start_time)
+            json_writer.write_filename_msg(
+                tags.get("mlflow.source.name"), run_start_time
+            )
 
-            json_writer.write_user_msg(tags["mlflow.user"], run_start_time)
+            json_writer.write_user_msg(tags.get("mlflow.user"), run_start_time)
 
             LOGGER.debug("### Preparing git details")
             json_writer.write_git_meta_msg(
