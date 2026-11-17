@@ -21,7 +21,7 @@
 #
 
 """
-Contains code to support multiple versions of MLFlow
+Contains code to support multiple versions of MLflow
 """
 from mlflow.entities.view_type import ViewType
 

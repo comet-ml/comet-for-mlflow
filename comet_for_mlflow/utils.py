@@ -20,10 +20,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import configparser
 import hashlib
 import json
-import os.path
 import re
 from zipfile import ZipFile
 
@@ -41,7 +39,10 @@ def get_store_id(store):
 
 def get_store_hash(store):
     store_id = get_store_id(store)
-    return hashlib.sha1(store_id.encode("utf-8")).hexdigest()[:6]
+    if store_id:
+        return hashlib.sha1(store_id.encode("utf-8")).hexdigest()[:6]
+
+    return None
 
 
 def clean_project_name(project_name):
@@ -53,7 +54,9 @@ def clean_project_name(project_name):
 
 def get_comet_project_name(store, exp_name):
     store_hash = get_store_hash(store)
-    return clean_project_name("mlflow-{}-{}".format(exp_name, store_hash))
+    if store_hash:
+        return clean_project_name("mlflow-{}-{}".format(exp_name, store_hash))
+    return clean_project_name("mlflow-{}".format(exp_name))
 
 
 def walk_run_artifacts(artifact_store):
@@ -101,22 +104,3 @@ def write_comet_experiment_metadata_file(
     zipfile = ZipFile(archive_path, "a")
     zipfile.writestr("experiment.json", json.dumps(data))
     zipfile.close()
-
-
-def save_api_key(api_key):
-    config_path = os.path.expanduser(os.path.join("~", ".comet.config"))
-
-    with open(config_path, "wt") as config_file:
-        config_file.write("# Config file for Comet.ml\n")
-        config_file.write(
-            "# For help see https://www.comet.com/docs/python-sdk/getting-started/\n"
-        )
-        config_file.write("")
-
-    config = configparser.ConfigParser()
-    if not config.has_section("comet"):
-        config.add_section("comet")
-    config.set("comet", "api_key", api_key)
-
-    with open(config_path, "a") as config_file:
-        config.write(config_file)

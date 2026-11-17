@@ -22,8 +22,6 @@
 
 """Main module."""
 
-from __future__ import print_function
-
 import logging
 import os.path
 import shutil
@@ -33,10 +31,9 @@ import traceback
 from os.path import abspath
 from zipfile import ZipFile
 
-from comet_ml import API, get_comet_api_client
+from comet_ml import API
 from comet_ml.config import get_api_key, get_config
 from comet_ml.connection import Reporting
-from comet_ml.exceptions import CometRestApiException
 from comet_ml.offline import upload_single_offline_experiment
 from comet_ml.utils import merge_url, url_join
 from mlflow.entities.run_tag import RunTag
@@ -57,18 +54,9 @@ from .file_writer import JsonLinesFile
 from .utils import (
     get_comet_project_name,
     get_store_id,
-    save_api_key,
     walk_run_artifacts,
     write_comet_experiment_metadata_file,
 )
-
-try:
-    # Python 2
-    input = raw_input
-except NameError:
-    # Python 3
-    pass
-
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 LOGGER = logging.getLogger()
@@ -76,8 +64,10 @@ LOGGER = logging.getLogger()
 
 # Install a global exception hook
 def except_hook(exc_type, exc_value, exc_traceback):
+    config = get_config()
     Reporting.report(
-        "mlflow_error",
+        config,
+        event_name="mlflow_error",
         err_msg="".join(traceback.format_exception(exc_type, exc_value, exc_traceback)),
     )
     sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -92,6 +82,49 @@ BANNER = r""" __   __         ___ ___     ___  __   __                 ___      
 """
 
 
+def _is_authentication_error(exception):
+    """Check if an exception is an authentication error (401)."""
+    error_msg = str(exception)
+    status_code = None
+
+    # Check HTTP status code for RestException
+    if hasattr(exception, "get_http_status_code"):
+        status_code = exception.get_http_status_code()
+
+    return (
+        status_code == 401
+        or "401" in error_msg
+        or "Credential" in error_msg
+        or "authentication" in error_msg.lower()
+    )
+
+
+def _log_authentication_error(mlflow_store_uri, context):
+    """Log helpful error message for MLflow authentication errors."""
+    LOGGER.error("")
+    LOGGER.error("MLflow authentication error detected when %s.", context)
+    LOGGER.error("")
+    if mlflow_store_uri and "databricks" in mlflow_store_uri.lower():
+        LOGGER.error(
+            "For Databricks MLflow stores, you need to set the "
+            "DATABRICKS_TOKEN environment variable:"
+        )
+        LOGGER.error("  export DATABRICKS_TOKEN=your_databricks_personal_access_token")
+        LOGGER.error("")
+        LOGGER.error("You can generate a token by:")
+        LOGGER.error("  1. Click on your user profile icon in the top-right corner")
+        LOGGER.error("  2. Select 'User Settings'")
+        LOGGER.error("  3. Go to the 'Access Tokens' tab")
+        LOGGER.error("  4. Click 'Generate New Token'")
+    else:
+        LOGGER.error("For authenticated MLflow stores, you may need to set:")
+        LOGGER.error("  - DATABRICKS_TOKEN (for Databricks token-based auth)")
+        LOGGER.error(
+            "  - MLFLOW_TRACKING_USERNAME and MLFLOW_TRACKING_PASSWORD (for basic auth)"
+        )
+    LOGGER.error("")
+
+
 class Translator(object):
     def __init__(
         self,
@@ -101,17 +134,15 @@ class Translator(object):
         force_upload,
         mlflow_store_uri,
         answer,
-        email,
     ):
         self.answer = answer
-        self.email = email
         self.config = get_config()
 
         # Display the start banner
         LOGGER.info(BANNER)
 
         # get_api_key
-        self.api_key, self.token = self.get_api_key_or_login(api_key)
+        self.api_key = self.get_api_key_or_login(api_key)
         # May not need this always?
         self.api_client = API(self.api_key, cache=False)
 
@@ -130,14 +161,14 @@ class Translator(object):
         try:
             self.store = _get_store(mlflow_store_uri)
         except RestException as e:
-            if self._is_authentication_error(e):
-                self._log_authentication_error(
+            if _is_authentication_error(e):
+                _log_authentication_error(
                     mlflow_store_uri, "connecting to MLflow store"
                 )
             raise
         except Exception as e:
-            if self._is_authentication_error(e):
-                self._log_authentication_error(
+            if _is_authentication_error(e):
+                _log_authentication_error(
                     mlflow_store_uri, "connecting to MLflow store"
                 )
             raise
@@ -150,14 +181,14 @@ class Translator(object):
         try:
             self.mlflow_experiments = search_mlflow_store_experiments(self.store)
         except RestException as e:
-            if self._is_authentication_error(e):
-                self._log_authentication_error(
+            if _is_authentication_error(e):
+                _log_authentication_error(
                     mlflow_store_uri, "accessing MLflow experiments"
                 )
             raise
         except Exception as e:
-            if self._is_authentication_error(e):
-                self._log_authentication_error(
+            if _is_authentication_error(e):
+                _log_authentication_error(
                     mlflow_store_uri, "accessing MLflow experiments"
                 )
             raise
@@ -220,7 +251,10 @@ class Translator(object):
                 )
                 LOGGER.error("")
                 Reporting.report(
-                    "mlflow_error", api_key=self.api_key, err_msg=traceback.format_exc()
+                    self.config,
+                    event_name="mlflow_error",
+                    api_key=self.api_key,
+                    err_msg=traceback.format_exc(),
                 )
 
         table = [
@@ -273,6 +307,7 @@ class Translator(object):
         len_runs = len(runs_info)
 
         for run_number, run_info in enumerate(runs_info):
+            run_id = None
             try:
                 run_id = get_mlflow_run_id(run_info)
 
@@ -291,7 +326,7 @@ class Translator(object):
 
                 if offline_archive:
                     self.summary["runs"] += 1
-                    yield (run, offline_archive)
+                    yield run, offline_archive
             except Exception:
                 LOGGER.exception(
                     "## Error preparing run %d/%d [%s]",
@@ -301,7 +336,10 @@ class Translator(object):
                 )
                 LOGGER.error("")
                 Reporting.report(
-                    "mlflow_error", api_key=self.api_key, err_msg=traceback.format_exc()
+                    self.config,
+                    event_name="mlflow_error",
+                    api_key=self.api_key,
+                    err_msg=traceback.format_exc(),
                 )
 
     def prepare_single_mlflow_run(self, run, original_experiment_name):
@@ -324,9 +362,11 @@ class Translator(object):
                 tags = {}
 
             LOGGER.debug("### Preparing env details")
-            json_writer.write_filename_msg(tags["mlflow.source.name"], run_start_time)
+            json_writer.write_filename_msg(
+                tags.get("mlflow.source.name"), run_start_time
+            )
 
-            json_writer.write_user_msg(tags["mlflow.user"], run_start_time)
+            json_writer.write_user_msg(tags.get("mlflow.user"), run_start_time)
 
             LOGGER.debug("### Preparing git details")
             json_writer.write_git_meta_msg(
@@ -530,7 +570,6 @@ class Translator(object):
                     self.api_client._get_url_server(),
                     self.workspace + "/",
                     project_name,
-                    loginToken=self.token,
                 )
                 LOGGER.info("\t- %s", project_url)
         else:
@@ -538,7 +577,6 @@ class Translator(object):
                 self.api_client._get_url_server(),
                 self.workspace,
                 query="mlflow",
-                loginToken=self.token,
             )
             LOGGER.info("\t- %s", url)
 
@@ -619,118 +657,19 @@ class Translator(object):
         else:
             return self.create_and_save_comet_project(exp, tag_name)
 
-    def create_or_login(self):
-        auth_api_client = get_comet_api_client(None)
-        LOGGER.info("Please create a free Comet.com account with your email.")
-        if self.email is None:
-            email = input("Email: ")
-            print("")
-        else:
-            email = self.email
-
-        # Check if the email exists in the system
-        try:
-            status = auth_api_client.check_email(email, "comet-for-mlflow")
-        except CometRestApiException as e:
-            status = e.response.status_code
-
-        # We hit rate-limitting
-        if status == 429:
-            # We hit rate-limitting
-            LOGGER.error(
-                "Too many user login requests, please try again in one minute."
-            )
-            sys.exit(1)
-
-        new_account = status != 200
-
-        if new_account:
-            LOGGER.info("Please enter a username for your new account.")
-            username = input("Username: ")
-            print("")
-            new_account = auth_api_client.create_user(
-                email, username, "comet-for-mlflow"
-            )
-
-            Reporting.report("mlflow_new_user", api_key=new_account["apiKey"])
-
-            LOGGER.info(
-                "A Comet.com account has been created for you and an email was sent to"
-                " you to setup your password later."
-            )
-            save_api_key(new_account["apiKey"])
-            LOGGER.info(
-                "Your Comet API Key has been saved to ~/.comet.config, it is also"
-                " available on your Comet.com dashboard."
-            )
-            return (
-                new_account["apiKey"],
-                new_account["token"],
-            )
-        else:
-            LOGGER.info(
-                "An account already exists for this email, please input your API Key"
-                " below (you can find it in your Settings page,"
-                " https://comet.com/docs/quick-start/#getting-your-comet-api-key):"
-            )
-            api_key = input("API Key: ")
-
-            Reporting.report("mlflow_existing_user", api_key=api_key)
-            return (
-                api_key,
-                None,
-            )
-
     def get_api_key_or_login(self, api_key):
-        # ok
         api_key = get_api_key(api_key, self.config)
 
         if api_key is None:
-            return self.create_or_login()
+            LOGGER.info(
+                "No Comet API Key found. Sign up or log in at https://www.comet.com"
+                " and input your API Key below (you can find it in your Settings"
+                " page, https://comet.com/docs/quick-start/#getting-your-comet-api-key):"
+            )
+            api_key = input("API Key: ")
 
-        Reporting.report("mlflow_existing_user", api_key=api_key)
-
-        return (api_key, None)
-
-    def _is_authentication_error(self, exception):
-        """Check if an exception is an authentication error (401)."""
-        error_msg = str(exception)
-        status_code = None
-
-        # Check HTTP status code for RestException
-        if hasattr(exception, "get_http_status_code"):
-            status_code = exception.get_http_status_code()
-
-        return (
-            status_code == 401
-            or "401" in error_msg
-            or "Credential" in error_msg
-            or "authentication" in error_msg.lower()
+        Reporting.report(
+            self.config, event_name="mlflow_existing_user", api_key=api_key
         )
 
-    def _log_authentication_error(self, mlflow_store_uri, context):
-        """Log helpful error message for MLflow authentication errors."""
-        LOGGER.error("")
-        LOGGER.error("MLflow authentication error detected when %s.", context)
-        LOGGER.error("")
-        if mlflow_store_uri and "databricks" in mlflow_store_uri.lower():
-            LOGGER.error(
-                "For Databricks MLflow stores, you need to set the "
-                "DATABRICKS_TOKEN environment variable:"
-            )
-            LOGGER.error(
-                "  export DATABRICKS_TOKEN=your_databricks_personal_access_token"
-            )
-            LOGGER.error("")
-            LOGGER.error("You can generate a token by:")
-            LOGGER.error("  1. Click on your user profile icon in the top-right corner")
-            LOGGER.error("  2. Select 'User Settings'")
-            LOGGER.error("  3. Go to the 'Access Tokens' tab")
-            LOGGER.error("  4. Click 'Generate New Token'")
-        else:
-            LOGGER.error("For authenticated MLflow stores, you may need to set:")
-            LOGGER.error("  - DATABRICKS_TOKEN (for Databricks token-based auth)")
-            LOGGER.error(
-                "  - MLFLOW_TRACKING_USERNAME and MLFLOW_TRACKING_PASSWORD (for basic auth)"
-            )
-        LOGGER.error("")
+        return api_key
