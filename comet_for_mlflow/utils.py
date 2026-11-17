@@ -39,7 +39,10 @@ def get_store_id(store):
 
 def get_store_hash(store):
     store_id = get_store_id(store)
-    return hashlib.sha1(store_id.encode("utf-8")).hexdigest()[:6]
+    if store_id:
+        return hashlib.sha1(store_id.encode("utf-8")).hexdigest()[:6]
+
+    return None
 
 
 def clean_project_name(project_name):
@@ -51,7 +54,9 @@ def clean_project_name(project_name):
 
 def get_comet_project_name(store, exp_name):
     store_hash = get_store_hash(store)
-    return clean_project_name("mlflow-{}-{}".format(exp_name, store_hash))
+    if store_hash:
+        return clean_project_name("mlflow-{}-{}".format(exp_name, store_hash))
+    return clean_project_name("mlflow-{}".format(exp_name))
 
 
 def walk_run_artifacts(artifact_store):
