@@ -5,14 +5,16 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
 
 jobs:
     build-package:
       runs-on: ubuntu-latest
       steps:
-        - uses: actions/checkout@v7
+        - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         - name: Set up Python 3.11
-          uses: actions/setup-python@v7
+          uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
           with:
               python-version: "3.11"
         - name: Build pip package
@@ -20,7 +22,7 @@ jobs:
               pip install -U pip build
               python3 -m build --sdist --wheel --outdir dist/ .
         - name: Archive Pypi artifacts
-          uses: actions/upload-artifact@v7
+          uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
           with:
               name: pypi_dist
               path: dist
